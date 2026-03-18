@@ -297,6 +297,23 @@ function requireSetupAuth(req, res, next) {
 
 const app = express();
 app.disable("x-powered-by");
+
+const DEV_CORS_ORIGINS = (process.env.OPENCLAW_DEV_CORS_ORIGINS || "")
+  .split(",").map((s) => s.trim()).filter(Boolean);
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && DEV_CORS_ORIGINS.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.setHeader("Vary", "Origin");
+    if (req.method === "OPTIONS") return res.status(204).end();
+  }
+  next();
+});
+
 app.use(express.json({ limit: "1mb" }));
 
 // Minimal health endpoint for Railway.
@@ -1314,6 +1331,15 @@ const proxy = httpProxy.createProxyServer({
   target: GATEWAY_TARGET,
   ws: true,
   xfwd: true,
+});
+
+proxy.on("proxyRes", (proxyRes, req) => {
+  const origin = req.headers.origin;
+  if (origin && DEV_CORS_ORIGINS.includes(origin)) {
+    proxyRes.headers["access-control-allow-origin"] = origin;
+    proxyRes.headers["access-control-allow-credentials"] = "true";
+    proxyRes.headers["vary"] = "Origin";
+  }
 });
 
 proxy.on("error", (err, _req, res) => {
