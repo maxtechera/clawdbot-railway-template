@@ -22,7 +22,7 @@ WORKDIR /openclaw
 
 # Pin to a known-good ref (tag/branch). Override in Railway template settings if needed.
 # Using a released tag avoids build breakage when `main` temporarily references unpublished packages.
-ARG OPENCLAW_GIT_REF=v2026.3.2
+ARG OPENCLAW_GIT_REF=v2026.3.23-2
 RUN git clone --depth 1 --branch "${OPENCLAW_GIT_REF}" https://github.com/openclaw/openclaw.git .
 
 # Patch: relax version requirements for packages that may reference unpublished versions.
@@ -51,8 +51,25 @@ RUN apt-get update \
     python3-venv \
   && rm -rf /var/lib/apt/lists/*
 
+# Optional: bake runtime-installed dependencies into the image so they survive redeploys.
+# Example (Railway build args):
+#   RUNTIME_APT_PACKAGES="ffmpeg jq"
+#   RUNTIME_NPM_GLOBAL_PACKAGES="acpx"
+ARG RUNTIME_APT_PACKAGES=""
+RUN if [ -n "${RUNTIME_APT_PACKAGES}" ]; then \
+      apt-get update \
+      && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ${RUNTIME_APT_PACKAGES} \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
+
 # `openclaw update` expects pnpm. Provide it in the runtime image.
 RUN corepack enable && corepack prepare pnpm@10.23.0 --activate
+
+ARG RUNTIME_NPM_GLOBAL_PACKAGES=""
+RUN if [ -n "${RUNTIME_NPM_GLOBAL_PACKAGES}" ]; then \
+      npm install -g --omit=dev ${RUNTIME_NPM_GLOBAL_PACKAGES} \
+      && npm cache clean --force; \
+    fi
 
 # Persist user-installed tools by default by targeting the Railway volume.
 # - npm global installs -> /data/npm
