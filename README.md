@@ -36,7 +36,7 @@ Optional:
 - `OPENCLAW_GATEWAY_TOKEN` — if not set, the wrapper generates one (not ideal). In a template, set it using a generated secret.
 
 Notes:
-- This template pins OpenClaw to a released version by default via Docker build arg `OPENCLAW_GIT_REF` (override if you want `main`).
+- This template pins OpenClaw to a released version by default via Docker build arg `OPENCLAW_GIT_REF` (currently `v2026.3.23-2`; override if you want another tag or `main`).
 
 4) Enable **Public Networking** (HTTP). Railway will assign a domain.
    - This service listens on Railway’s injected `PORT` at runtime (recommended).
@@ -86,6 +86,19 @@ What persists cleanly today:
 What does *not* persist cleanly:
 - `apt-get install ...` (installs into `/usr/*`)
 - Homebrew installs (typically `/opt/homebrew` or similar)
+
+### Bake runtime dependencies into the image (recommended)
+
+If you find yourself installing packages manually in a running container, move them into Docker build args so they survive redeploys.
+
+Supported Docker build args in this template:
+- `RUNTIME_APT_PACKAGES` — space-separated apt packages (example: `"ffmpeg jq"`)
+- `RUNTIME_NPM_GLOBAL_PACKAGES` — space-separated npm global packages (example: `"acpx"`)
+
+Example (Railway build variables / Docker args):
+- `OPENCLAW_GIT_REF=v2026.3.23-2`
+- `RUNTIME_APT_PACKAGES=ffmpeg jq`
+- `RUNTIME_NPM_GLOBAL_PACKAGES=acpx`
 
 ### Optional bootstrap hook
 
