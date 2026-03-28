@@ -67,7 +67,7 @@ RUN if [ -n "${RUNTIME_APT_PACKAGES}" ]; then \
 # `openclaw update` expects pnpm. Provide it in the runtime image.
 RUN corepack enable && corepack prepare pnpm@10.23.0 --activate
 
-ARG RUNTIME_NPM_GLOBAL_PACKAGES="gog"
+ARG RUNTIME_NPM_GLOBAL_PACKAGES=""
 RUN if [ -n "${RUNTIME_NPM_GLOBAL_PACKAGES}" ]; then \
       npm install -g --omit=dev ${RUNTIME_NPM_GLOBAL_PACKAGES} \
       && npm cache clean --force; \
@@ -76,6 +76,12 @@ RUN if [ -n "${RUNTIME_NPM_GLOBAL_PACKAGES}" ]; then \
 # Bake Python-based CLI tools into the image
 RUN pipx install yt-dlp && pipx ensurepath
 ENV PATH="/root/.local/bin:${PATH}"
+
+# Install gogcli (Google Workspace CLI — Gmail, Calendar, Drive, Sheets, etc.)
+ARG GOGCLI_VERSION=0.12.0
+RUN curl -fsSL "https://github.com/steipete/gogcli/releases/download/v${GOGCLI_VERSION}/gogcli_${GOGCLI_VERSION}_linux_amd64.tar.gz" \
+    | tar -xz -C /usr/local/bin gog \
+    && chmod +x /usr/local/bin/gog
 
 # Persist user-installed tools by default by targeting the Railway volume.
 # - npm global installs -> /data/npm
